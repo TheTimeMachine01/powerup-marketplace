@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Battery, Phone, Mail, MapPin } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -25,7 +26,7 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-display font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm text-background/70">
-              <li><a href="#products" className="hover:text-primary transition-colors">Shop Batteries</a></li>
+              <li><Link to="/collections" className="hover:text-primary transition-colors">Our Collection</Link></li>
               <li><a href="#" className="hover:text-primary transition-colors">Track Order</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Exchange Policy</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Warranty Info</a></li>

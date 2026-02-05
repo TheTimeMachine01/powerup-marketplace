@@ -28,7 +28,11 @@ export const ProductGrid: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        setLoading(false);
+        return;
+      }
       setProducts((data || []) as Product[]);
     } catch (err) {
       console.error('Error fetching products:', err);
@@ -41,7 +45,7 @@ export const ProductGrid: React.FC = () => {
     .filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            product.brand.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesVehicle = vehicleFilter === 'all' || product.vehicle_type === vehicleFilter;
+      const matchesVehicle = vehicleFilter === 'all' || product.category === vehicleFilter;
       return matchesSearch && matchesVehicle;
     })
     .sort((a, b) => {

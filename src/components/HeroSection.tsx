@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Car, Bike, Zap, Shield, Truck, ArrowRight } from 'lucide-react';
 
 export const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-automotive-dark py-20 lg:py-28">
       {/* Background Pattern */}
@@ -41,15 +44,16 @@ export const HeroSection: React.FC = () => {
                 size="lg" 
                 variant="secondary"
                 className="gap-2 text-base font-semibold"
-                onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => navigate('/collections')}
               >
                 Shop Now
                 <ArrowRight className="h-5 w-5" />
               </Button>
               <Button 
                 size="lg" 
-                variant="outline"
-                className="gap-2 text-base border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                variant="secondary"
+                className="gap-2 text-base font-semibold"
+                onClick={() => navigate('/collections')}
               >
                 <Car className="h-5 w-5" />
                 Find Your Battery

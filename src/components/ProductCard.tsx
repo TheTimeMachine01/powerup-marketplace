@@ -6,8 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ShoppingCart, Battery, ArrowLeftRight } from 'lucide-react';
 import type { Product } from '@/types/database';
-import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/hooks/use-cart';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +16,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequired }) => {
   const [withExchange, setWithExchange] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
 
@@ -38,7 +39,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
       onAuthRequired();
       return;
     }
+    setIsAdding(true);
     await addToCart(product, withExchange);
+    setIsAdding(false);
   };
 
   return (
@@ -117,14 +120,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
         )}
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 gap-2">
         <Button 
-          className="w-full gap-2"
+          variant="outline"
+          className="flex-1 gap-2"
           onClick={handleAddToCart}
-          disabled={product.stock_quantity === 0}
+          disabled={product.stock_quantity === 0 || isAdding}
         >
           <ShoppingCart className="h-4 w-4" />
-          Add to Cart
+          {isAdding ? 'Adding...' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>

@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeftRight, CreditCard } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
+import { useCart } from '@/hooks/use-cart';
 import { toast } from 'sonner';
 
 interface CartSheetProps {
@@ -21,12 +21,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
     updateQuantity, 
     updateExchange, 
     getCartTotal,
+    checkout,
     loading 
   } = useCart();
 
-  const handleCheckout = () => {
-    toast.info('Razorpay checkout will be integrated here');
-    // Razorpay integration will be added here
+  const handleCheckout = async () => {
+    try {
+      await checkout();
+      onOpenChange(false);
+    } catch (err) {
+      // Error handled in context
+    }
   };
 
   const total = getCartTotal();

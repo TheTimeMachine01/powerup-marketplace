@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Battery, ShoppingCart, User, LogOut, LayoutDashboard, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/hooks/use-auth';
+import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from './AuthModal';
 import { CartSheet } from './CartSheet';
 
@@ -37,9 +37,9 @@ export const Navbar: React.FC = () => {
               <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </Link>
-              <a href="#products" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Products
-              </a>
+              <Link to="/collections" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Collections
+              </Link>
               <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 About
               </a>
@@ -115,13 +115,13 @@ export const Navbar: React.FC = () => {
                 >
                   Home
                 </Link>
-                <a 
-                  href="#products" 
+                <Link 
+                  to="/collections" 
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Products
-                </a>
+                  Collections
+                </Link>
                 <a 
                   href="#about" 
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

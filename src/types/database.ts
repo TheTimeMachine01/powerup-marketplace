@@ -29,6 +29,7 @@ export interface CartItem {
   quantity: number;
   with_exchange: boolean;
   created_at?: string;
+  updated_at?: string;
   product?: Product;
 }
 

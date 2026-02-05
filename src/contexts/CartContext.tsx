@@ -1,24 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/supabase';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import type { CartItem, Product } from '@/types/database';
 import { toast } from 'sonner';
+import { CartContext } from './cart-context-type';
 
-interface CartContextType {
-  cartItems: CartItem[];
-  loading: boolean;
-  addToCart: (product: Product, withExchange: boolean) => Promise<void>;
-  removeFromCart: (itemId: string) => Promise<void>;
-  updateQuantity: (itemId: string, quantity: number) => Promise<void>;
-  updateExchange: (itemId: string, withExchange: boolean) => Promise<void>;
-  clearCart: () => Promise<void>;
-  getCartTotal: () => number;
-  getCartCount: () => number;
-}
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
-
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +26,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         `)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching cart:', error);
+        return;
+      }
       setCartItems((data || []) as CartItem[]);
     } catch (err) {
       console.error('Error fetching cart:', err);
@@ -58,30 +48,59 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    setLoading(true);
     try {
       const existingItem = cartItems.find(item => 
         item.product_id === product.id && item.with_exchange === withExchange
       );
 
       if (existingItem) {
-        await updateQuantity(existingItem.id, existingItem.quantity + 1);
-      } else {
+        if (existingItem.quantity + 1 > product.stock_quantity) {
+          toast.error(`Only ${product.stock_quantity} units available in stock`);
+          return;
+        }
+
+        // Optimistic update
+        setCartItems(prev => prev.map(item => 
+          item.id === existingItem.id ? { ...item, quantity: item.quantity + 1 } : item
+        ));
+        
         const { error } = await db
+          .from('carts')
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq('id', existingItem.id);
+          
+        if (error) {
+          // Rollback
+          setCartItems(prev => prev.map(item => 
+            item.id === existingItem.id ? { ...item, quantity: item.quantity } : item
+          ));
+          throw error;
+        }
+      } else {
+        const { data, error } = await db
           .from('carts')
           .insert({
             user_id: user.id,
             product_id: product.id,
             quantity: 1,
             with_exchange: withExchange,
-          });
+          })
+          .select(`
+            *,
+            product:products(*)
+          `)
+          .single();
 
         if (error) throw error;
-        await fetchCart();
+        setCartItems(prev => [...prev, data as CartItem]);
       }
       toast.success('Added to cart!');
     } catch (err) {
       console.error('Error adding to cart:', err);
       toast.error('Failed to add to cart');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,21 +121,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
+    const item = cartItems.find(i => i.id === itemId);
+    if (!item) return;
+
     if (quantity < 1) {
       await removeFromCart(itemId);
       return;
     }
 
+    if (item.product && quantity > item.product.stock_quantity) {
+      toast.error(`Only ${item.product.stock_quantity} units available in stock`);
+      return;
+    }
+
     try {
+      // Optimistic update
+      setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity } : i));
+
       const { error } = await db
         .from('carts')
         .update({ quantity })
         .eq('id', itemId);
 
-      if (error) throw error;
-      setCartItems(prev => 
-        prev.map(item => item.id === itemId ? { ...item, quantity } : item)
-      );
+      if (error) {
+        // Rollback
+        setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: item.quantity } : i));
+        throw error;
+      }
     } catch (err) {
       console.error('Error updating quantity:', err);
       toast.error('Failed to update quantity');
@@ -153,6 +184,41 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCartItems([]);
     } catch (err) {
       console.error('Error clearing cart:', err);
+      toast.error('Failed to clear cart');
+    }
+  };
+
+  const checkout = async () => {
+    if (!user || cartItems.length === 0) return;
+
+    setLoading(true);
+    try {
+      const total = getCartTotal();
+      
+      // 1. Create Order
+      const { data: order, error: orderError } = await db
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: total,
+          status: 'pending',
+          payment_status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Clear Cart
+      await clearCart();
+      
+      toast.success('Order placed successfully!');
+    } catch (err) {
+      console.error('Error during checkout:', err);
+      toast.error('Checkout failed. Please try again.');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -179,18 +245,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateQuantity,
       updateExchange,
       clearCart,
+      checkout,
       getCartTotal,
       getCartCount,
     }}>
       {children}
     </CartContext.Provider>
   );
-};
-
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
+}
