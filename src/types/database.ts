@@ -18,8 +18,16 @@ export interface Profile {
   user_id: string;
   full_name?: string;
   phone?: string;
-  role: 'customer' | 'admin' | 'office_staff' | 'delivery_handler';
+  shipping_address?: string;
+  avatar_url?: string;
   created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'office_staff' | 'delivery_handler' | 'customer';
 }
 
 export interface CartItem {
@@ -40,5 +48,19 @@ export interface Order {
   total_amount: number;
   payment_id?: string;
   payment_status: 'pending' | 'completed' | 'failed';
+  shipping_address?: string;
+  created_at?: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount_percent?: number;
+  discount_amount?: number;
+  valid_from: string;
+  valid_until?: string;
+  max_uses?: number;
+  used_count: number;
+  is_active: boolean;
   created_at?: string;
 }
