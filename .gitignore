@@ -33,5 +33,5 @@ dist-ssr
 
 *.csv
 
-.env.*
 .env
+

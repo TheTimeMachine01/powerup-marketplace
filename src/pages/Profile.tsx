@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,11 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Package, MapPin, Phone, Loader2 } from 'lucide-react';
-import { db } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Footer } from '@/components/Footer';
+import type { Order } from '@/types/database';
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -25,8 +29,10 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const Profile = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -48,28 +54,95 @@ const Profile = () => {
       reset({
         full_name: profile.full_name || '',
         phone: profile.phone || '',
-        shipping_address: '',
+        shipping_address: profile.shipping_address || '',
       });
     }
   }, [profile, reset]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setOrders((data as Order[]) || []);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast.error('Failed to load order history');
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user]);
+
+  const fetchOrders = async () => {
+    if (!user) return;
+    setLoadingOrders(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOrders((data as Order[]) || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load order history');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
 
   const onSubmit = async (data: ProfileFormData) => {
     if (!user) return;
 
     try {
-      const { error } = await db
+      const { error } = await supabase
         .from('profiles')
         .update({
           full_name: data.full_name,
           phone: data.phone || null,
+          shipping_address: data.shipping_address || null,
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
       toast.success('Profile updated successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+
+      // Refresh profile to update Navbar name immediately
+      if (refreshProfile) {
+        await refreshProfile();
+      } else {
+        window.location.reload();
+      }
+
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400';
+      case 'confirmed': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+      case 'shipped': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
+      case 'delivered': return 'bg-green-500/10 text-green-600 dark:text-green-400';
+      case 'cancelled': return 'bg-red-500/10 text-red-600 dark:text-red-400';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -109,7 +182,7 @@ const Profile = () => {
 
             <TabsContent value="profile" className="space-y-6">
               <Card className="border-border/50 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10">
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
                     Personal Information
@@ -128,7 +201,7 @@ const Profile = () => {
                           type="email"
                           value={user.email || ''}
                           disabled
-                          className="bg-muted"
+                          className="bg-muted dark:bg-muted/50"
                         />
                         <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                       </div>
@@ -141,7 +214,7 @@ const Profile = () => {
                             id="full_name"
                             {...register('full_name')}
                             placeholder="Your full name"
-                            className="pl-10"
+                            className="pl-10 dark:bg-muted/50 dark:border-border"
                           />
                         </div>
                         {errors.full_name && (
@@ -157,7 +230,7 @@ const Profile = () => {
                             id="phone"
                             {...register('phone')}
                             placeholder="+91 9876543210"
-                            className="pl-10"
+                            className="pl-10 dark:bg-muted/50 dark:border-border"
                           />
                         </div>
                         {errors.phone && (
@@ -173,7 +246,7 @@ const Profile = () => {
                             id="shipping_address"
                             {...register('shipping_address')}
                             placeholder="Enter your complete shipping address"
-                            className="pl-10 min-h-[100px]"
+                            className="pl-10 min-h-[100px] dark:bg-muted/50 dark:border-border"
                           />
                         </div>
                         {errors.shipping_address && (
@@ -193,7 +266,7 @@ const Profile = () => {
 
             <TabsContent value="orders" className="space-y-6">
               <Card className="border-border/50 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10">
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-primary" />
                     Order History
@@ -203,20 +276,68 @@ const Profile = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="text-center py-12">
-                    <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                    <h3 className="text-lg font-medium text-foreground">No orders yet</h3>
-                    <p className="text-muted-foreground mt-2">
-                      Your order history will appear here once you make a purchase.
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => navigate('/collections')}
-                    >
-                      Browse Products
-                    </Button>
-                  </div>
+                  {loadingOrders ? (
+                    <div className="space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : orders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="h-12 w-12 mx-auto text-muted-foreground/50 dark:text-muted-foreground/30 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground">No orders yet</h3>
+                      <p className="text-muted-foreground mt-2">
+                        Your order history will appear here once you make a purchase.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-4 dark:border-border"
+                        onClick={() => navigate('/collections')}
+                      >
+                        Browse Products
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="dark:border-border/50">
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Payment</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {orders.map((order) => (
+                            <TableRow key={order.id} className="dark:border-border/50">
+                              <TableCell className="font-mono text-sm">
+                                {order.id.slice(0, 8)}...
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {order.created_at
+                                  ? new Date(order.created_at).toLocaleDateString('en-IN')
+                                  : '-'
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="secondary"
+                                  className={getStatusColor(order.status)}
+                                >
+                                  {order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                ₹{order.total_amount?.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

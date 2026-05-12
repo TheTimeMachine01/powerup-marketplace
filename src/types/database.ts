@@ -20,6 +20,7 @@ export interface Profile {
   phone?: string;
   shipping_address?: string;
   avatar_url?: string;
+  email?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -35,9 +36,7 @@ export interface CartItem {
   user_id: string;
   product_id: string;
   quantity: number;
-  with_exchange: boolean;
   created_at?: string;
-  updated_at?: string;
   product?: Product;
 }
 
@@ -46,9 +45,9 @@ export interface Order {
   user_id: string;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   total_amount: number;
-  payment_id?: string;
-  payment_status: 'pending' | 'completed' | 'failed';
-  shipping_address?: string;
+  coupon_id?: string;
+  delivery_address?: string;
+  payment_intent_id?: string;
   created_at?: string;
 }
 
@@ -56,11 +55,9 @@ export interface Coupon {
   id: string;
   code: string;
   discount_percent?: number;
-  discount_amount?: number;
-  valid_from: string;
+  active: boolean;
   valid_until?: string;
-  max_uses?: number;
-  used_count: number;
-  is_active: boolean;
+  min_cart_value?: number;
+  max_discount?: number;
   created_at?: string;
 }

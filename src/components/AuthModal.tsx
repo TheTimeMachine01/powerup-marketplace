@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
-import { lovable } from '@/integrations/lovable';
+import { Loader2, Mail, Lock, User, Github } from 'lucide-react';
 
 interface AuthModalProps {
   open: boolean;
@@ -16,13 +15,13 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithOAuth } = useAuth();
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
-  
+
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  
+
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupName, setSignupName] = useState('');
@@ -30,9 +29,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const { error } = await signIn(loginEmail, loginPassword);
-    
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -47,9 +46,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const { error } = await signUp(signupEmail, signupPassword, signupName);
-    
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -65,18 +64,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
   const handleGoogleSignIn = async () => {
     setOauthLoading('google');
     try {
-      const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
-      });
-
-      if (result.error) {
-        toast.error(result.error.message || 'Failed to sign in with Google');
-      } else if (!result.redirected) {
-        toast.success('Welcome to DigitBattery!');
-        onOpenChange(false);
+      const { error } = await signInWithOAuth('google');
+      if (error) {
+        toast.error(error.message || 'Failed to sign in with Google');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      toast.error(message);
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  const handleGitHubSignIn = async () => {
+    setOauthLoading('github');
+    try {
+      const { error } = await signInWithOAuth('github');
+      if (error) {
+        toast.error(error.message || 'Failed to sign in with GitHub');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with GitHub';
+      toast.error(message);
     } finally {
       setOauthLoading(null);
     }
@@ -87,17 +96,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
       <DialogContent className="sm:max-w-md border-border/50">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl">
-            Welcome to <span className="text-primary">DigitBattery</span>
+            Welcome to <span className="text-primary">DigitInfotech</span>
           </DialogTitle>
         </DialogHeader>
 
-        {/* OAuth Buttons */}
-        <div className="mt-4 space-y-3">
-          <Button 
-            variant="outline" 
-            className="w-full gap-3 h-11 border-border/50 hover:bg-muted/50"
+        <div className="space-y-3">
+          <Button
+            variant="outline"
+            className="w-full gap-3 h-11 border-border/50 hover:bg-muted/50 dark:hover:bg-muted/50"
             onClick={handleGoogleSignIn}
-            disabled={oauthLoading === 'google'}
+            disabled={oauthLoading !== null}
           >
             {oauthLoading === 'google' ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -122,6 +130,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onOpenChange }) => {
               </svg>
             )}
             Continue with Google
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full gap-3 h-11 border-border/50 hover:bg-muted/50 dark:hover:bg-muted/50"
+            onClick={handleGitHubSignIn}
+            disabled={oauthLoading !== null}
+          >
+            {oauthLoading === 'github' ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Github className="h-5 w-5" />
+            )}
+            Continue with GitHub
           </Button>
         </div>
 

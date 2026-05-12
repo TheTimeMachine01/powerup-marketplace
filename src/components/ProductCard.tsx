@@ -45,14 +45,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
   };
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-hover gradient-card">
+    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-hover hover:shadow-lg dark:hover:shadow-lg dark:hover:shadow-primary/20 border-border dark:border-secondary/50">
       {/* Stock Badge */}
       <div className="absolute top-3 right-3 z-10">
         {getStockBadge()}
       </div>
 
       {/* Product Image */}
-      <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50 p-6 flex items-center justify-center overflow-hidden">
+      <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50 dark:from-secondary dark:to-secondary/70 p-6 flex items-center justify-center overflow-hidden">
         {product.image_url ? (
           <img 
             src={product.image_url} 
@@ -60,7 +60,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
             className="object-contain max-h-full transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <Battery className="h-24 w-24 text-primary/30 transition-transform duration-300 group-hover:scale-105" />
+          <Battery className="h-24 w-24 text-primary/30 dark:text-primary/40 transition-transform duration-300 group-hover:scale-105" />
         )}
       </div>
 
@@ -99,7 +99,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
         </div>
 
         {/* Exchange Toggle */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 dark:bg-secondary/40 border border-border dark:border-secondary/40">
           <div className="flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4 text-primary" />
             <Label htmlFor={`exchange-${product.id}`} className="text-sm font-medium cursor-pointer">
@@ -123,7 +123,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAuthRequire
       <CardFooter className="p-4 pt-0 gap-2">
         <Button 
           variant="outline"
-          className="flex-1 gap-2"
+          className="flex-1 gap-2 dark:border-secondary/50 dark:hover:bg-primary/10"
           onClick={handleAddToCart}
           disabled={product.stock_quantity === 0 || isAdding}
         >

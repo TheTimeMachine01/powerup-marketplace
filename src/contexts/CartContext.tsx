@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import type { CartItem, Product } from '@/types/database';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     try {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('carts')
         .select(`
           *,
@@ -42,7 +42,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     fetchCart();
   }, [user]);
 
-  const addToCart = async (product: Product, withExchange: boolean) => {
+  const addToCart = async (product: Product) => {
     if (!user) {
       toast.error('Please login to add items to cart');
       return;
@@ -51,7 +51,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const existingItem = cartItems.find(item => 
-        item.product_id === product.id && item.with_exchange === withExchange
+        item.product_id === product.id
       );
 
       if (existingItem) {
@@ -65,7 +65,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           item.id === existingItem.id ? { ...item, quantity: item.quantity + 1 } : item
         ));
         
-        const { error } = await db
+        const { error } = await supabase
           .from('carts')
           .update({ quantity: existingItem.quantity + 1 })
           .eq('id', existingItem.id);
@@ -78,13 +78,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
       } else {
-        const { data, error } = await db
+        const { data, error } = await supabase
           .from('carts')
           .insert({
             user_id: user.id,
             product_id: product.id,
             quantity: 1,
-            with_exchange: withExchange,
           })
           .select(`
             *,
@@ -106,7 +105,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCart = async (itemId: string) => {
     try {
-      const { error } = await db
+      const { error } = await supabase
         .from('carts')
         .delete()
         .eq('id', itemId);
@@ -138,7 +137,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update
       setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity } : i));
 
-      const { error } = await db
+      const { error } = await supabase
         .from('carts')
         .update({ quantity })
         .eq('id', itemId);
@@ -154,28 +153,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateExchange = async (itemId: string, withExchange: boolean) => {
-    try {
-      const { error } = await db
-        .from('carts')
-        .update({ with_exchange: withExchange })
-        .eq('id', itemId);
-
-      if (error) throw error;
-      setCartItems(prev => 
-        prev.map(item => item.id === itemId ? { ...item, with_exchange: withExchange } : item)
-      );
-    } catch (err) {
-      console.error('Error updating exchange:', err);
-      toast.error('Failed to update exchange option');
-    }
-  };
-
   const clearCart = async () => {
     if (!user) return;
 
     try {
-      const { error } = await db
+      const { error } = await supabase
         .from('carts')
         .delete()
         .eq('user_id', user.id);
@@ -196,7 +178,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const total = getCartTotal();
       
       // 1. Create Order
-      const { data: order, error: orderError } = await db
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
@@ -225,10 +207,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
       if (!item.product) return total;
-      const price = item.with_exchange 
-        ? item.product.price - item.product.scrap_value 
-        : item.product.price;
-      return total + (price * item.quantity);
+      return total + (item.product.price * item.quantity);
     }, 0);
   };
 
@@ -243,7 +222,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       addToCart,
       removeFromCart,
       updateQuantity,
-      updateExchange,
       clearCart,
       checkout,
       getCartTotal,

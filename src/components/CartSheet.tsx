@@ -19,7 +19,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
     cartItems, 
     removeFromCart, 
     updateQuantity, 
-    updateExchange, 
     getCartTotal,
     checkout,
     loading 
@@ -69,9 +68,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
                 {cartItems.map((item) => {
                   if (!item.product) return null;
                   
-                  const itemPrice = item.with_exchange 
-                    ? item.product.price - item.product.scrap_value 
-                    : item.product.price;
+                  const itemPrice = item.product.price;
 
                   return (
                     <div key={item.id} className="flex gap-4 p-4 rounded-lg bg-muted/30 border">
@@ -94,23 +91,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {item.product.brand} • {item.product.ah_rating} AH
                         </p>
-
-                        {/* Exchange Toggle */}
-                        <div className="flex items-center gap-2 mt-2">
-                          <Switch
-                            id={`cart-exchange-${item.id}`}
-                            checked={item.with_exchange}
-                            onCheckedChange={(checked) => updateExchange(item.id, checked)}
-                            className="scale-75"
-                          />
-                          <label 
-                            htmlFor={`cart-exchange-${item.id}`}
-                            className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer"
-                          >
-                            <ArrowLeftRight className="h-3 w-3" />
-                            Exchange
-                          </label>
-                        </div>
 
                         {/* Quantity & Price */}
                         <div className="flex items-center justify-between mt-3">
@@ -140,11 +120,6 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
                             <p className="font-semibold text-sm">
                               ₹{(itemPrice * item.quantity).toLocaleString()}
                             </p>
-                            {item.with_exchange && (
-                              <p className="text-xs text-success">
-                                Saved ₹{(item.product.scrap_value * item.quantity).toLocaleString()}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>

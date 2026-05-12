@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { ProductCard } from './ProductCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,19 +23,24 @@ export const ProductGrid: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await db
+      console.log('🔄 Fetching products...');
+      const { data, error, status } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('📊 Query response:', { data, error, status });
+
       if (error) {
-        console.error('Error fetching products:', error);
+        console.error('❌ Error fetching products:', error);
         setLoading(false);
         return;
       }
+      
+      console.log('✅ Products loaded:', data?.length || 0);
       setProducts((data || []) as Product[]);
     } catch (err) {
-      console.error('Error fetching products:', err);
+      console.error('❌ Error fetching products:', err);
     } finally {
       setLoading(false);
     }
@@ -62,7 +67,7 @@ export const ProductGrid: React.FC = () => {
     });
 
   return (
-    <section id="products" className="py-16 bg-background">
+    <section id="products" className="py-16 bg-background dark:bg-background/80">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-12">
@@ -82,7 +87,7 @@ export const ProductGrid: React.FC = () => {
               placeholder="Search by brand or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 dark:bg-secondary/40 dark:border-secondary/50"
             />
           </div>
 
@@ -90,7 +95,7 @@ export const ProductGrid: React.FC = () => {
             <Button
               variant={vehicleFilter === 'all' ? 'default' : 'outline'}
               size="sm"
-              className="gap-2"
+              className="gap-2 dark:border-secondary/50"
               onClick={() => setVehicleFilter('all')}
             >
               <Battery className="h-4 w-4" />
@@ -99,7 +104,7 @@ export const ProductGrid: React.FC = () => {
             <Button
               variant={vehicleFilter === 'car' ? 'default' : 'outline'}
               size="sm"
-              className="gap-2"
+              className="gap-2 dark:border-secondary/50"
               onClick={() => setVehicleFilter('car')}
             >
               <Car className="h-4 w-4" />
@@ -108,7 +113,7 @@ export const ProductGrid: React.FC = () => {
             <Button
               variant={vehicleFilter === 'bike' ? 'default' : 'outline'}
               size="sm"
-              className="gap-2"
+              className="gap-2 dark:border-secondary/50"
               onClick={() => setVehicleFilter('bike')}
             >
               <Bike className="h-4 w-4" />
@@ -117,7 +122,7 @@ export const ProductGrid: React.FC = () => {
           </div>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] dark:bg-secondary/40 dark:border-secondary/50">
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>

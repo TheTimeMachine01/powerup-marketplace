@@ -10,7 +10,9 @@ import Index from "./pages/Index";
 import Collections from "./pages/Collections";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import ProductDetails from "./pages/ProductDetails";
 import NotFound from "./pages/NotFound";
+import { AdminRoute } from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +28,13 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/collections" element={<Collections />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/product/:id" element={<ProductDetails />} />
+
+                {/* Protected Admin Routes */}
+                <Route element={<AdminRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
+
                 <Route path="/profile" element={<Profile />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
